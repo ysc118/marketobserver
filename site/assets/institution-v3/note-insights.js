@@ -4,6 +4,28 @@ const monitoredBanks=['众安银行','中银香港','汇丰银行','恒生银行
 const feedback=['好评','中评','差评'];
 const rankFields={engage:'总互动',comments:'评论',likes:'点赞',saves:'收藏',negative:'差评占比'};
 
+function issueState(note){
+  if(!note.theme||note.theme==='不相关')return 'excluded';
+  return ['yes','no','unclear'].includes(note.issue?.status)?note.issue.status:'unreviewed';
+}
+function issueStats(notes,bank){
+  const unique=new Map();
+  for(const n of notes)if(n.bank===bank&&n.id&&!unique.has(n.id))unique.set(n.id,n);
+  const relevant=[...unique.values()].filter(n=>issueState(n)!=='excluded');
+  const issues=relevant.filter(n=>issueState(n)==='yes');
+  const pending=relevant.filter(n=>issueState(n)==='unreviewed').length;
+  return {bank,related:relevant.length,count:relevant.length===pending?null:issues.length,
+    pending,unclear:relevant.filter(n=>issueState(n)==='unclear').length,
+    share:relevant.length&&!pending?issues.length/relevant.length:null,
+    comments:issues.reduce((sum,n)=>sum+(n.comments||0),0),
+    likes:issues.reduce((sum,n)=>sum+(n.likes||0),0),engage:issues.reduce((sum,n)=>sum+(n.engage||0),0)};
+}
+function issueSummary(week){
+  const num=n=>Number.isFinite(n)?n.toLocaleString('zh-HK'):'—';
+  const rows=monitoredBanks.map(bank=>issueStats(week.notes,bank)).map(r=>'<tr><th scope="row">'+esc(r.bank)+'</th><td>'+num(r.count)+'</td><td>'+num(r.related)+'</td><td>'+(r.share===null?'—':(100*r.share).toFixed(1)+'%')+'</td><td>'+num(r.unclear)+'</td><td>'+(r.count===null?'—':num(r.comments))+'</td><td>'+(r.count===null?'—':num(r.likes))+'</td><td>'+(r.count===null?'—':num(r.engage))+'</td><td>'+(r.pending?'尚有 '+r.pending+' 篇未复核':'已复核')+'</td></tr>').join('');
+  return '<section class="week-banks issue-overview"><h3>投诉与问题反馈</h3><p>四行统一口径 · 已剔除不相关笔记 · 与业务主题、好中差评分别标注</p><div class="wrap"><table aria-label="四行投诉与问题反馈"><thead><tr><th>银行</th><th>问题篇数</th><th>相关样本</th><th>问题占比</th><th>待核实</th><th>评论</th><th>点赞</th><th>总互动</th><th>复核情况</th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="stats-foot">纳入具体办理受阻、功能与交易异常、费用权益争议、处理延迟、账户限制及相关第三方风险；已解决的问题也保留。待核实不计入问题篇数，历史未复核不记零。占比为问题篇数 ÷ 相关样本，不是客户投诉率。评论与互动是这些笔记的累计快照，用户陈述不代表已核实银行责任。</p></section>';
+}
+
 function bankNoteStats(notes){
   const rows=new Map(monitoredBanks.map(bank=>[bank,{bank,raw:0,count:0,engage:0,comments:0,likes:0,saves:0,missingSaves:false,rated:0,好评:0,中评:0,差评:0}]));
   const seen=new Set();

@@ -34,7 +34,8 @@
     const choices=all.map(w=>[w.end,dayShift(w.end,-6)+' 至 '+w.end]);
     if(!week)choices.unshift([requested,'所选周没有监控原件']);
     if(section==='week')return '<label class="archive-date">日历选周<input type="date" data-note-calendar value="'+esc(params.get('noteDay')||requested)+'"></label>'+options('week','周报期',choices,requested);
-    return select('noteBank','全部监测机构',values('bank')) + select('theme','全部主题',values('theme')) +
+    return select('noteBank','全部监测机构',values('bank')) + select('theme','全部业务主题',values('theme')) +
+      options('issue','投诉与问题反馈筛选',[['','全部问题状态'],['yes','投诉与问题反馈'],['unclear','问题待核实'],['no','未见具体问题'],['unreviewed','历史未复核']],params.get('issue')||'')+
       options('sort','笔记排序',[['engage','互动最多'],['comments','评论最多'],['likes','点赞最多']],noteOrder()) +
       '<input type="search" name="q" aria-label="搜索笔记标题" placeholder="搜索笔记标题" value="'+esc(params.get('q')||'')+'">';
   }
@@ -101,16 +102,18 @@
     for (const note of week.notes) {
       if ((bank && note.bank!==bank) || (theme && note.theme!==theme)) continue;
       if (sentiment && note.sentiment!==sentiment) continue;
+      if (params.get('issue') && issueState(note)!==params.get('issue')) continue;
       if (query && !String(note.title || '').toLocaleLowerCase().includes(query)) continue;
       const id = canonicalNoteId(note);
       if (!id) continue;
       let post = posts.get(id);
       if (!post) {
-        post={id, sample:note, banks:new Map(), themes:new Set()};
+        post={id, sample:note, banks:new Map(), themes:new Set(),issues:new Map()};
         posts.set(id,post);
       }
       if (note.bank) post.banks.set(note.bank,note.sentiment);
       if (note.theme) post.themes.add(note.theme);
+      post.issues.set(note.bank,{state:issueState(note),summary:note.issue?.summary||'',type:note.issue?.type||''});
       // Display one observation for all three engagement metrics, with no summing across banks.
       if ((note[order] ?? -1) > (post.sample[order] ?? -1)) post.sample=note;
     }
@@ -120,12 +123,13 @@
     );
     
     if (!sorted.length) return empty('本期没有匹配这些条件的笔记。');
-    const cards = sorted.slice(0,rowLimit('notes')).map(({id,sample,banks,themes}) => {
+    const cards = sorted.slice(0,rowLimit('notes')).map(({id,sample,banks,themes,issues}) => {
       const labels = [...themes].map(t => '<span class="tag">'+esc(t)+'</span>').join('');
       const institutions = [...banks].map(([bank,rating])=>'<span>'+esc(bank)+
         (feedback.includes(rating)?' <small class="note-rating feedback-'+feedback.indexOf(rating)+'">'+esc(rating)+'</small>':'')+'</span>').join('');
+      const issueText=[...issues].filter(([b,i])=>['yes','unclear'].includes(i.state)).map(([b,i])=>'<p class="issue-note"><span class="tag">'+(i.state==='yes'?'投诉与问题反馈':'问题待核实')+'</span> '+esc(b)+' · '+esc(i.type)+(i.summary?'：'+esc(i.summary):'：可读资料不足，暂不计入问题篇数。')+'</p>').join('');
       return '<article class="row red-note-row"><div class="red-note-banks">'+institutions+'</div>'+
-        '<div>'+labels+'<h3>'+esc(sample.title)+'</h3><small>互动 '+format(sample.engage)+'　评论 '+format(sample.comments)+'　点赞 '+format(sample.likes)+'　收藏 '+format(sample.saves)+'</small>'+
+        '<div>'+labels+'<h3>'+esc(sample.title)+'</h3>'+issueText+'<small>互动 '+format(sample.engage)+'　评论 '+format(sample.comments)+'　点赞 '+format(sample.likes)+'　收藏 '+format(sample.saves)+'</small>'+
         '<div class="note-original" data-original-note="'+esc(id)+'" data-original-bank="'+esc(sample.bank)+'"></div></div></article>';
     }).join('');
     return '<p class="red-source">小红书笔记 · 周报截至 '+esc(week.end)+' · '+sorted.length+' 篇原帖</p><div class="rows">'+cards+'</div>'+pagination(sorted.length,'notes');
@@ -135,7 +139,7 @@
     if(xhsSection()==='notes'){
       const week=selectedWeek(weeks());
       return '<section class="red-section" id="red-notes"><div class="red-filters">'+redControls('week')+'</div>'+
-        (week?weekBankSummary(week)+'<h3 class="notes-list-title">笔记明细</h3>'+sentimentFilter()+'<div class="red-filters">'+redControls('notes')+'</div>':'')+notesView()+'</section>';
+        (week?weekBankSummary(week)+issueSummary(week)+'<h3 class="notes-list-title">笔记明细</h3>'+sentimentFilter()+'<div class="red-filters">'+redControls('notes')+'</div>':'')+notesView()+'</section>';
     }
     return '<section class="red-section"><div class="index-filter-bar">'+redControls('index')+periodDateForm('indexDate')+'</div>'+indexView()+'</section>';
   }

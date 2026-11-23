@@ -10,6 +10,10 @@ const catalog = JSON.parse(gunzipSync(open(await fs.readFile(catalogFile), team,
 const update = JSON.parse(await fs.readFile(updateFile, 'utf8'));
 if (!/^\d{4}-\d{2}-\d{2}$/.test(update.week) || update.reviewScope !== 'reviewed') throw Error('A reviewed weekly snapshot is required');
 if (!Array.isArray(update.notes) || !update.notes.length || update.notes.some(n => !n.theme || !/^[a-f0-9]{24}$/i.test(n.id))) throw Error('Incomplete note classification');
+if(update.week>='2026-11-20' && update.notes.some(n=>
+  !['yes','no','unclear','excluded'].includes(n.issue?.status) ||
+  (n.theme==='不相关')!==(n.issue.status==='excluded') ||
+  (n.issue.status==='yes'&&(!n.issue.summary||!n.issue.type)))) throw Error('Incomplete issue review; sentiment is not an issue label');
 if (update.originals?.week !== update.week || update.originals.notes.length !== update.notes.length) throw Error('Original note snapshot mismatch');
 const libraryBefore = JSON.stringify(catalog.library);
 const originalWeeks = catalog.xhs.weeks;
