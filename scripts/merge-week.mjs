@@ -26,6 +26,12 @@ catalog.xhs.search_index.weekly = {...catalog.xhs.search_index.weekly, ...update
 catalog.xhs.search_index.brands = [...new Set([...catalog.xhs.search_index.brands, ...update.search_index.brands])];
 catalog.xhs.indexWeek = Object.keys(catalog.xhs.search_index.weekly).sort().at(-1);
 catalog.notes[update.week] = update.originals;
+if(update.lingxi){
+  const row=update.lingxi;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(row.start)||!/^\d{4}-\d{2}-\d{2}$/.test(row.end)||row.start>row.end)throw Error('Invalid Lingxi source period');
+  catalog.lingxi=(catalog.lingxi||[]).filter(r=>!(r.start===row.start&&r.end===row.end));
+  catalog.lingxi.push(row);catalog.lingxi.sort((a,b)=>b.end.localeCompare(a.end));
+}
 if (JSON.stringify(catalog.library) !== libraryBefore) throw Error('Drafts must not enter the team report archive');
 const bytes = seal(gzipSync(JSON.stringify(catalog)), team, 'hkbeat-catalog-v1/');
 const verified = JSON.parse(gunzipSync(open(bytes, team, 'hkbeat-catalog-v1/')));
@@ -33,3 +39,4 @@ const week = verified.xhs.weeks.find(w => w.end === update.week);
 if (week.notes.length !== update.notes.length || verified.notes[update.week].notes.length !== update.notes.length) throw Error('Encrypted roundtrip verification failed');
 await fs.writeFile(outputFile, bytes);
 console.log(JSON.stringify({week:update.week, records:week.notes.length, related:week.notes.filter(n => n.theme !== '不相关').length, searchThrough:Object.keys(verified.xhs.search_index.daily).sort().at(-1), draftPublished:false}));
+

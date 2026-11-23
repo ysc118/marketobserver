@@ -21,7 +21,7 @@
 
 每小时第 17 分钟计划运行，直接连接月狐官方 API。GitHub 排队可能延迟；不承诺准点或秒级实时。App 指标按月狐已发布的日度/月度记录显示，回查 35 天以覆盖后续修订，并保留完整历史。6 个 App 全部成功后才替换数据，失败保留旧数据、公开错误状态但不记录密钥或响应正文。页面显示数据日期和最近成功检查时间，每 5 分钟检查站点版本，发现更新提示刷新。
 
-小红书及已核实市场资料沿用导入快照，不会假装由月狐更新。后续更新本地资料后运行下述导出并提交。原周报周一待审流程仍在现有 Agent，不会由此工作流自动发送到飞书。
+小红书及已核实市场资料沿用导入快照，不会假装由月狐更新。周报周一 15:00 自动任务已于 2026-11-23 取消。用户放好材料后明确要求出刊、更新，Agent 才开始；先待审，明确批准后归档，群发另需指令。本工作流仅自动检查月狐和部署已提交的网站文件，不生成或批准周报。
 
 ## 本地维护
 
@@ -33,7 +33,7 @@ npm test
 npm run build
 ```
 
-导出只写加密文件，不输出团队密钥。不要提交原始 Excel、PDF、`.env`、含团队密钥的链接或截图。网页目录为 `dist`。所有相对路径兼容 GitHub 项目子路径。
+以上 export-local 仅用于首次迁移；日常周更新从最新 main 开始，用 merge-week 合并，不能用旧全量快照覆盖最新月狐和已归档资料。不要提交原始 Excel、PDF、`.env`、含团队密钥的链接或截图。网页目录为 `dist`。所有相对路径兼容 GitHub 项目子路径。
 
 每周更新已核对的小红书笔记与搜索指数时，先取得现行版本的加密 catalog，再运行：
 
@@ -44,3 +44,14 @@ node scripts/merge-week.mjs <现行catalog.enc> <本地本期资料.json> <公�
 本期资料须包含完整分类和原帖快照。此操作合并历史，保留现行月狐文件和团队周报归档；待审 PDF/HTML 不进入团队网站。仅提交生成的密文及不含资料的代码。私人待审站已关闭匿名访问，旧 hkbeat.abrdns.com 域名已解绑。
 
 GitHub 内地可达性需要实际网络验收，部署成功不代表所有内地网络可访问。
+
+## 用户确认后的归档
+
+Agent 的 `weekly_delivery.py snapshot` 调用 merge-week.mjs，合并已复核笔记、搜索及可选的灵犀原刊摘要；archive-reports.mjs 为原刊和已批准周报生成密文。`weekly_delivery.py archive` 仅在收到具体版本的批准后调用，归档 PDF、HTML 和证据，并生成私有发布清单。
+
+```text
+node scripts/archive-reports.mjs <私有发布清单.json> <团队链接.url>
+```
+
+清单的 reports 项含 kind/start/end/pdf/sha256；weekly 要求 userConfirmed=true，lingxi 原刊要求 sourceReviewed=true。清单和原件保持在仓库外，只提交生成的 catalog.enc 和指定 PDF 密文。脚本不会发送消息或 push。提交前保留最新 main 的 app.enc/status.json，部署后核对线上 manifest 与密文哈希。公司完整流程见 Agent 根目录「交接给公司内部AI.md」。
+
