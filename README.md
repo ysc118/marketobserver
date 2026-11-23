@@ -35,4 +35,12 @@ npm run build
 
 导出只写加密文件，不输出团队密钥。不要提交原始 Excel、PDF、`.env`、含团队密钥的链接或截图。网页目录为 `dist`。所有相对路径兼容 GitHub 项目子路径。
 
+每周更新已核对的小红书笔记与搜索指数时，先取得现行版本的加密 catalog，再运行：
+
+```text
+node scripts/merge-week.mjs <现行catalog.enc> <本地本期资料.json> <公司团队链接.url> site/data/catalog.enc
+```
+
+本期资料须包含完整分类和原帖快照。此操作合并历史，保留现行月狐文件和团队周报归档；待审 PDF/HTML 不进入团队网站。仅提交生成的密文及不含资料的代码。私人待审站已关闭匿名访问，旧 hkbeat.abrdns.com 域名已解绑。
+
 GitHub 内地可达性需要实际网络验收，部署成功不代表所有内地网络可访问。
