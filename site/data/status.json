@@ -1,11 +1,11 @@
 {
   "state": "complete",
   "mode": "hourly-api",
-  "dailyThrough": "2026-11-21",
+  "dailyThrough": "2026-11-23",
   "monthlyThrough": "2026-10",
-  "lastSuccess": "2026-11-25T09:48:21.417Z",
-  "lastAttempt": "2026-11-25T09:48:08.275Z",
+  "lastSuccess": "2026-11-25T19:54:39.401Z",
+  "lastAttempt": "2026-11-25T19:54:27.721Z",
   "importedAt": "2026-11-20T08:03:15.799Z",
   "message": null,
-  "changed": false
+  "changed": true
 }
